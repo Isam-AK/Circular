@@ -1,8 +1,26 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import MapView, { Marker, Callout, Region } from "react-native-maps";
+import { View, Text, Platform, ScrollView, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocation } from "@/hooks/useLocation";
 import type { Item } from "@/types";
+
+// react-native-maps is native-only; lazy-import to avoid web crash
+const MapView = Platform.OS !== "web"
+  ? require("react-native-maps").default
+  : null;
+const Marker = Platform.OS !== "web"
+  ? require("react-native-maps").Marker
+  : null;
+const Callout = Platform.OS !== "web"
+  ? require("react-native-maps").Callout
+  : null;
+
+type Region = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
 
 // Mock items scattered around default NYC coordinates
 const MOCK_ITEMS: Item[] = [
@@ -86,6 +104,36 @@ export default function ExploreScreen() {
     longitudeDelta: 0.01,
   });
 
+  if (Platform.OS === "web" || !MapView) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.searchBar}>
+          <Text style={styles.searchText}>
+            {MOCK_ITEMS.length} items nearby
+          </Text>
+        </View>
+        <ScrollView contentContainerStyle={styles.webList}>
+          {MOCK_ITEMS.map((item) => (
+            <View key={item.id} style={styles.webCard}>
+              <View
+                style={[
+                  styles.webDot,
+                  { backgroundColor: CATEGORY_COLORS[item.category] ?? "#6B7280" },
+                ]}
+              />
+              <View style={styles.webCardBody}>
+                <Text style={styles.calloutTitle}>{item.title}</Text>
+                <Text style={styles.calloutCategory}>{item.category}</Text>
+                <Text style={styles.calloutDesc}>{item.description}</Text>
+              </View>
+              <Ionicons name="location-outline" size={18} color="#9CA3AF" />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <MapView
@@ -115,7 +163,6 @@ export default function ExploreScreen() {
         ))}
       </MapView>
 
-      {/* Floating search hint */}
       <View style={styles.searchBar}>
         <Text style={styles.searchText}>
           {MOCK_ITEMS.length} items nearby
@@ -152,4 +199,25 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   searchText: { fontSize: 14, fontWeight: "600", color: "#374151" },
+  webList: { padding: 16, paddingTop: 72 },
+  webCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  webDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 12,
+  },
+  webCardBody: { flex: 1 },
 });
